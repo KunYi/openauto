@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <QAudioOutput>
 #include <QAudioFormat>
 #include <f1x/openauto/autoapp/Projection/IAudioOutput.hpp>
@@ -58,6 +59,7 @@ protected slots:
     void onStopPlayback();
 
 private:
+    std::mutex mutex_;
     QAudioFormat audioFormat_;
     QIODevice* audioDevice_;
     std::unique_ptr<QAudioOutput> audioOutput_;

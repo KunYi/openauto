@@ -55,11 +55,14 @@ void AudioOutput::createAudioOutput()
 
 bool AudioOutput::open()
 {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
     return audioDevice_ != nullptr;
 }
 
 void AudioOutput::write(const aasdk::common::DataConstBuffer& buffer)
 {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+
     if(audioDevice_ != nullptr)
     {
         audioDevice_->write(reinterpret_cast<const char*>(buffer.cdata), buffer.size);
@@ -102,11 +105,15 @@ uint32_t AudioOutput::getSampleRate() const
 
 void AudioOutput::onStartPlayback()
 {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+
     audioOutput_->resume();
 }
 
 void AudioOutput::onSuspendPlayback()
 {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+
     if(audioDevice_ != nullptr)
     {
         audioOutput_->suspend();
@@ -115,6 +122,8 @@ void AudioOutput::onSuspendPlayback()
 
 void AudioOutput::onStopPlayback()
 {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+
     if(audioDevice_ != nullptr)
     {
         audioOutput_->stop();

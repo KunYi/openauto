@@ -30,7 +30,6 @@ namespace projection
 {
 
 AudioOutput::AudioOutput(uint32_t channelCount, uint32_t sampleSize, uint32_t sampleRate)
-    : playbackStarted_(false)
 {
     audioFormat_.setChannelCount(channelCount);
     audioFormat_.setSampleRate(sampleRate);
@@ -51,19 +50,24 @@ void AudioOutput::createAudioOutput()
 {
     OPENAUTO_LOG(debug) << "[AudioOutput] create.";
     audioOutput_ = std::make_unique<QAudioOutput>(QAudioDeviceInfo::defaultOutputDevice(), audioFormat_);
-
-    // Default volume level (max) produces crackles
-    audioOutput_->setVolume(static_cast<qreal>(0.90));
+    audioDevice_ = audioOutput_->start();
 }
 
 bool AudioOutput::open()
 {
-    return audioBuffer_.open(QIODevice::ReadWrite);
+    return audioDevice_ != nullptr;
 }
 
 void AudioOutput::write(const aasdk::common::DataConstBuffer& buffer)
 {
-    audioBuffer_.write(reinterpret_cast<const char*>(buffer.cdata), buffer.size);
+    if(audioDevice_ != nullptr)
+    {
+        audioDevice_->write(reinterpret_cast<const char*>(buffer.cdata), buffer.size);
+    }
+    else
+    {
+        OPENAUTO_LOG(warning) << "[AudioOutput] audio device is null.";
+    }
 }
 
 void AudioOutput::start()
@@ -98,28 +102,23 @@ uint32_t AudioOutput::getSampleRate() const
 
 void AudioOutput::onStartPlayback()
 {
-    if(!playbackStarted_)
-    {
-        audioOutput_->start(&audioBuffer_);
-        playbackStarted_ = true;
-    }
-    else
-    {
-        audioOutput_->resume();
-    }
+    audioOutput_->resume();
 }
 
 void AudioOutput::onSuspendPlayback()
 {
-    audioOutput_->suspend();
+    if(audioDevice_ != nullptr)
+    {
+        audioOutput_->suspend();
+    }
 }
 
 void AudioOutput::onStopPlayback()
 {
-    if(playbackStarted_)
+    if(audioDevice_ != nullptr)
     {
         audioOutput_->stop();
-        playbackStarted_ = false;
+        audioDevice_ = nullptr;
     }
 }
 
